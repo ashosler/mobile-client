@@ -122,7 +122,7 @@ export class EdgeImpulseClassifier {
             imageInputHeight: ret.image_input_height,
             imageInputFrames: ret.image_input_frames,
             imageInputChannelCount: ret.image_input_channel_count,
-            intervalMs: ret.interval_ms,
+            intervalMs: 100000000000,
             axisCount: ret.axis_count,
             labelCount: ret.label_count,
             modelType: ret.model_type,

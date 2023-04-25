@@ -37,6 +37,7 @@ export class ClassificationClientViews {
         cameraInner: document.querySelector('.capture-camera-inner') as HTMLElement,
         cameraVideo: document.querySelector('.capture-camera-inner video') as HTMLVideoElement,
         cameraCanvas: document.querySelector('.capture-camera-inner canvas') as HTMLCanvasElement,
+        showResults: document.querySelector('.show-results') as HTMLCanvasElement,
     };
 
     private _sensors: ISensor[] = [];
@@ -274,7 +275,8 @@ export class ClassificationClientViews {
                         else {
                             // give some time to give the idea we're inferencing
                             this._elements.inferencingMessage.textContent = 'Inferencing...';
-                            await this.sleep(300);
+                            // await this.sleep(300);
+                            await this.sleep(1000);
                         }
 
                         let d: number[];
@@ -302,7 +304,9 @@ export class ClassificationClientViews {
                             this._elements.inferenceCaptureBody.style.display = 'initial';
                             this._elements.inferenceRecordingMessageBody.style.display = 'none';
                             this._elements.inferenceCaptureButton.classList.remove('disabled');
-
+                            // this._elements.showResults.style.display = 'initial';
+                            // this._elements.showResults.innerHTML =
+                            //     '<i class="fa">TEST</i>';
                             this._elements.inferenceCaptureButton.innerHTML =
                                 '<i class="fa fa-camera mr-2"></i>Next photo';
 
@@ -662,6 +666,95 @@ export class ClassificationClientViews {
             let widthFactor = Number(this._elements.cameraCanvas.width) /
                 Number(this._elements.cameraVideo.clientWidth);
 
+            let tbody = <HTMLElement>this._elements.inferencingResultTable.querySelector('tbody');
+            let head = document.createElement('tr');
+            head.innerHTML = '<th style={"width: 33%"}>Label</th><th>X coord</th><th>Y coord</th>';
+            head.classList.add('active');
+            tbody.replaceChildren(head)
+
+            let cx = -1;
+            let cy = -1;
+            let pocket_x: number[] = [];
+            let pocket_y: number[]  = [];
+            for (let e of res.results) {
+                let row = document.createElement('tr');
+                
+                for (let txt of [e.label, e.x, e.y]) {
+                    let td = document.createElement('td');
+                    td.textContent = String(txt);
+                    td.classList.add('px-0', 'text-center');
+                    td.classList.add('text-gray');
+                    row.appendChild(td);
+                }
+                if (e.label === "cue_ball") {
+                    cx = Number(e.x);
+                    cy = Number(e.y)
+                }
+                if (e.label === "pocket") {
+                    pocket_x.push(Number(e.x));
+                    pocket_y.push(Number(e.y));
+                }
+                tbody.appendChild(row);
+            }
+
+            let bestball_score = -1
+            let bestx = -1
+            let besty = -1
+            if (cx != -1 && pocket_x.length > 0) {
+                let score_head = document.createElement('tr');
+                score_head.innerHTML = '<th>Coord</th><th>BestAngle</th><th>Score</th>';
+                score_head.classList.add('active');
+                // tbody.appendChild(score_head)
+
+                for (let e of res.results) {
+                    if (e.label === "pool_ball") {
+                        let row = document.createElement('tr');
+                        let coord_str = String(e.x)+','+String(e.y);
+                        let best_angle = 0.0;
+                        let best_score = -1000;
+
+                        for (let i = 0; i < pocket_x.length; i++) {
+                            let px = pocket_x[i];
+                            let py = pocket_y[i];
+                            
+                            // let cue_ball_yx = [cx-Number(e.x), cy-Number(e.y)]
+                            // let pocket_yx = [px-Number(e.x), py-Number(e.y)]
+
+                            // let v1_xy = [cue_ball_yx[1], -1 * cue_ball_yx[0]]
+                            // let v2_xy = [pocket_yx[1], -1 * pocket_yx[0]]
+
+                            let AB = Math.sqrt(Math.pow(Number(e.x)-px,2)+ Math.pow(Number(e.y)-py,2));    
+                            let BC = Math.sqrt(Math.pow(Number(e.x)-cx,2)+ Math.pow(Number(e.y)-cy,2)); 
+                            let AC = Math.sqrt(Math.pow(cx-px,2)+ Math.pow(cy-py,2));
+                            let cos = Math.acos((BC*BC+AB*AB-AC*AC)/(2*BC*AB));
+                            let angle = Math.abs(cos * (180/Math.PI) - 180);
+                            let shot_score = 180 - angle;
+
+                            if (shot_score > best_score) {
+                                best_angle = angle;
+                                best_score = shot_score;
+                            }
+                            if (shot_score > bestball_score) {
+                                bestball_score = shot_score
+                                bestx = Number(e.x);
+                                besty = Number(e.y);
+                            }
+                        }
+                        
+                        for (let txt of [coord_str,best_angle.toFixed(2),best_score.toFixed(2)]) {
+                            let td = document.createElement('td');
+                            td.textContent = txt;
+                            td.classList.add('px-0', 'text-center');
+                            td.classList.add('text-gray');
+                            row.appendChild(td);
+                        }
+                        tbody.insertBefore(row, tbody.firstChild);
+                        // tbody.appendChild(row);
+                    }
+                }
+                tbody.insertBefore(score_head, tbody.firstChild);
+            }
+            
             for (let b of res.results) {
                 if (typeof b.x !== 'number' ||
                     typeof b.y !== 'number' ||
@@ -684,6 +777,9 @@ export class ClassificationClientViews {
                 }
 
                 let color = this._labelToColor[bb.label];
+                if (b.label === "pool_ball" && bestx === Number(b.x) && besty === Number(b.y)) {
+                    color = '#ffd700';
+                }
 
                 let el = document.createElement('div');
                 el.classList.add('bounding-box-container');
