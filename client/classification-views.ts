@@ -671,8 +671,8 @@ export class ClassificationClientViews {
             let head = document.createElement('tr');
             head.innerHTML = '<th style={"width: 33%"}>Label</th><th>X coord</th><th>Y coord</th>';
             head.classList.add('active');
-            tbody.replaceChildren(head);
-            let num_rows = 1;
+            tbody.innerHTML = '';
+            tbody.appendChild(head);
 
             let cx = -1;
             let cy = -1;
