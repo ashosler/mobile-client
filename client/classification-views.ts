@@ -334,7 +334,7 @@ export class ClassificationClientViews {
                             this._elements.inferenceCaptureButton.addEventListener('click', onClick);
 
                             // immediately sample next window
-                            setTimeout(sampleNextWindow, 0);
+                            // setTimeout(sampleNextWindow, 0);
                         }
                         else {
                             let startDelay = 2;
@@ -356,7 +356,7 @@ export class ClassificationClientViews {
                 if (prop.sensor === 'camera') {
                     if (prop.modelType === 'object_detection') {
                         // MobileNet SSD should not run continuously (will be too slow)
-                        setTimeout(sampleNextWindow, 0);
+                        setTimeout(sampleNextWindow, 1000000000000000);
                     }
                     else {
                         return this.sampleImagesContinuous(<CameraSensor>sensor, prop);
@@ -523,9 +523,9 @@ export class ClassificationClientViews {
                 inputHeight: prop.imageInputHeight,
             };
 
-            this._elements.inferenceCaptureButton.innerHTML =
-                '<i class="fa fa-camera mr-2"></i>Inferencing...';
-            this._elements.inferenceCaptureButton.classList.add('disabled');
+            // this._elements.inferenceCaptureButton.innerHTML =
+            //     '<i class="fa fa-camera mr-2"></i>Inferencing...';
+            // this._elements.inferenceCaptureButton.classList.add('disabled');
 
             let data = await sensor.takeSnapshot(samplingOptions);
 
@@ -648,6 +648,7 @@ export class ClassificationClientViews {
                 tbody.insertBefore(row, tbody.firstChild);
             }
         }
+        //OBJECT DETECTION
         else {
             for (let bx of Array.from(
                 this._elements.cameraInner.querySelectorAll('.bounding-box-container'))) {
@@ -670,7 +671,8 @@ export class ClassificationClientViews {
             let head = document.createElement('tr');
             head.innerHTML = '<th style={"width: 33%"}>Label</th><th>X coord</th><th>Y coord</th>';
             head.classList.add('active');
-            tbody.replaceChildren(head)
+            tbody.replaceChildren(head);
+            let num_rows = 1;
 
             let cx = -1;
             let cy = -1;
@@ -705,6 +707,10 @@ export class ClassificationClientViews {
                 score_head.innerHTML = '<th>Coord</th><th>BestAngle</th><th>Score</th>';
                 score_head.classList.add('active');
                 // tbody.appendChild(score_head)
+
+                // setTimeout(() => {
+                //     score_head.classList.remove('active');
+                // }, activeTimeout);
 
                 for (let e of res.results) {
                     if (e.label === "pool_ball") {
@@ -750,10 +756,25 @@ export class ClassificationClientViews {
                         }
                         tbody.insertBefore(row, tbody.firstChild);
                         // tbody.appendChild(row);
+                        
+                        
+                        
                     }
                 }
                 tbody.insertBefore(score_head, tbody.firstChild);
             }
+            let num_blank_rows = 39 - tbody.childElementCount //39 = max rows for objects on a pool table
+                for (let i = 0; i < num_blank_rows; i++) {
+                    let row = document.createElement('tr');
+                    for (let j = 0; j < 3; j++) {
+                        let td = document.createElement('td');
+                            td.textContent = "";
+                            td.classList.add('px-0', 'text-center');
+                            td.classList.add('text-gray');
+                            row.appendChild(td);
+                    }
+                    tbody.appendChild(row);
+                }
             
             for (let b of res.results) {
                 if (typeof b.x !== 'number' ||
@@ -778,7 +799,7 @@ export class ClassificationClientViews {
 
                 let color = this._labelToColor[bb.label];
                 if (b.label === "pool_ball" && bestx === Number(b.x) && besty === Number(b.y)) {
-                    color = '#ffd700';
+                    color = '#0000ff';
                 }
 
                 let el = document.createElement('div');
